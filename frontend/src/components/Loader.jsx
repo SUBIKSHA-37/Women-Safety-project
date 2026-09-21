@@ -1,0 +1,1 @@
+export default function Loader(){ return <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"><span className="size-4 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent"/>Analyzing safest route...</div> }
