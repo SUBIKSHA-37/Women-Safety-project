@@ -1,0 +1,31 @@
+name: Backend health check
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  check-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Wait for backend and test /health
+        run: |
+          echo "Skipping automatic deploy verification — replace HEALTH_URL with your deployed backend"
+          HEALTH_URL="https://your-backend.onrender.com/health"
+          # Try 5 times
+          for i in 1 2 3 4 5; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL || true)
+            echo "Attempt $i: HTTP $status"
+            if [ "$status" = "200" ]; then
+              echo "Healthy"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health check failed"
+          exit 1
