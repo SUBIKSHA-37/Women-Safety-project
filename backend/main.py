@@ -1,4 +1,5 @@
 import asyncio
+import os
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +11,11 @@ from services.safety_routing import generate_route_profiles
 from services.sos import dispatch_sos
 
 app = FastAPI(title="HerShield", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# Allow origins via `ALLOWED_ORIGINS` env var (comma-separated), default to localhost and Vite preview/production
+default_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+env_origins = os.getenv("ALLOWED_ORIGINS")
+allowed = [o.strip() for o in env_origins.split(",")] if env_origins else default_origins
+app.add_middleware(CORSMiddleware, allow_origins=allowed, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 class RouteRequest(BaseModel):
     source: str = Field(min_length=2, max_length=150)

@@ -38,6 +38,16 @@ uvicorn main:app --reload --port 8000
 
 The saved emergency contact accepts `7550397115`, `917550397115`, or `+917550397115` and is normalized to `+917550397115` before Twilio is called. `POLICE_EMERGENCY_PHONE` is optional; if omitted or invalid, it is skipped so it never prevents delivery to the saved emergency contact. The emergency short code `100` is not a valid Twilio SMS recipient. Pressing SOS retrieves a fresh browser location and posts it with the locally saved contact to `/sos`.
 
+## Deployment
+
+- **Frontend (Vercel)**: The frontend is a static Vite app. In the Vercel dashboard/import flow, set the root to `frontend` and the build command to `npm run vercel-build`. Set the output directory to `dist`. Add an environment variable `VITE_API_URL=https://<your-backend-service>`.
+
+- **Backend (Render)**: The backend is a Python FastAPI app. On Render, create a new Web Service from this repo's `backend` directory. Use the `Dockerfile` provided or the `gunicorn` start command via the `Procfile`. Ensure `ALLOWED_ORIGINS` includes your deployed frontend domain (e.g., `https://your-frontend.vercel.app`). Add Twilio environment variables from `backend/.env.example`.
+
+Example `VITE_API_URL` for frontend environment variables: `https://your-backend.onrender.com`
+
+After deploying both services, update `ALLOWED_ORIGINS` and `VITE_API_URL` to match the production domains.
+
 ## Safety scoring
 
 The backend returns three genuinely separate Dijkstra profiles over the road-edge graph:
