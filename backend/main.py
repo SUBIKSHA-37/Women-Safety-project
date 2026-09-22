@@ -4,19 +4,27 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
 from services.geocoding import geocode
 from services.routing import get_routes
 from services.safety import nearby_safety_coverage
 from services.safety_routing import generate_route_profiles
 from services.sos import dispatch_sos
 
+# -------------------- APP INIT -------------------- #
 app = FastAPI(title="HerShield", version="1.0.0")
-# Allow origins via `ALLOWED_ORIGINS` env var (comma-separated), default to localhost and Vite preview/production
-default_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
-env_origins = os.getenv("ALLOWED_ORIGINS")
-allowed = [o.strip() for o in env_origins.split(",")] if env_origins else default_origins
-app.add_middleware(CORSMiddleware, allow_origins=allowed, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+# -------------------- CORS FIX -------------------- #
+# Allow all origins for now (important for Vercel)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # change to your Vercel URL later
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# -------------------- MODELS -------------------- #
 class RouteRequest(BaseModel):
     source: str = Field(min_length=2, max_length=150)
     destination: str = Field(min_length=2, max_length=150)
@@ -26,9 +34,16 @@ class SOSRequest(BaseModel):
     lng: float = Field(ge=-180, le=180)
     phone: str = Field(min_length=3, max_length=25)
 
-@app.get("/health")
-async def health(): return {"status": "ok"}
+# -------------------- HEALTH ROUTES -------------------- #
+@app.get("/")
+async def root():
+    return {"message": "HerShield API running 🚀"}
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+# -------------------- SOS API -------------------- #
 @app.post("/sos")
 async def send_sos(payload: SOSRequest):
     try:
@@ -37,24 +52,80 @@ async def send_sos(payload: SOSRequest):
     except (RuntimeError, ValueError) as error:
         raise HTTPException(status_code=502, detail=str(error))
 
+# -------------------- SAFE ROUTE API -------------------- #
 @app.post("/get_safe_route")
 async def safe_route(payload: RouteRequest):
     timeout = httpx.Timeout(18.0, connect=6.0)
+
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            source, destination = await asyncio.gather(geocode(payload.source, client), geocode(payload.destination, client))
+
+            # Step 1: Convert place names to coordinates
+            source, destination = await asyncio.gather(
+                geocode(payload.source, client),
+                geocode(payload.destination, client)
+            )
+
+            # Step 2: Get raw routes
             raw_routes = await get_routes(source, destination, client)
-            # Gather safety POIs first; they become inputs to individual graph-edge weights.
-            all_points = [point for route in raw_routes for point in route["coordinates"]]
+
+            # Step 3: Collect all route points
+            all_points = [
+                point for route in raw_routes for point in route["coordinates"]
+            ]
+
+            # Step 4: Get nearby safety coverage
             coverage = await nearby_safety_coverage(all_points, client)
-            routes = generate_route_profiles(raw_routes, coverage["hospitals"], coverage["police"])
+
+            # Step 5: Generate safe route profiles
+            routes = generate_route_profiles(
+                raw_routes,
+                coverage["hospitals"],
+                coverage["police"]
+            )
+
+        # Step 6: Assign duration (safe fallback)
+        min_duration = min(item["duration_s"] for item in raw_routes)
         for route in routes:
-            route["duration_s"] = min(item["duration_s"] for item in raw_routes)
-        best_route = next(route for route in routes if route["id"] == "safest")
-        return {"routes": routes, "best_route": best_route, "source": source, "destination": destination}
+            route["duration_s"] = min_duration
+
+        # Step 7: Pick safest route
+        best_route = next(
+            (route for route in routes if route["id"] == "safest"),
+            routes[0]
+        )
+
+        return {
+            "routes": routes,
+            "best_route": best_route,
+            "source": source,
+            "destination": destination
+        }
+
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error))
+
     except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Safety services are taking too long. Please try again.")
+        raise HTTPException(
+            status_code=504,
+            detail="Safety services are taking too long. Please try again."
+        )
+
     except httpx.HTTPError:
-        raise HTTPException(status_code=502, detail="Could not reach the mapping service. Please try again shortly.")
+        raise HTTPException(
+            status_code=502,
+            detail="Could not reach the mapping service. Please try again shortly."
+        )
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(error)}"
+        )
+
+# -------------------- LOCAL RUN -------------------- #
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
