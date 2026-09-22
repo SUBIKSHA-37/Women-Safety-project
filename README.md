@@ -44,6 +44,19 @@ The saved emergency contact accepts `7550397115`, `917550397115`, or `+917550397
 
 - **Backend (Render)**: The backend is a Python FastAPI app. On Render, create a new Web Service from this repo's `backend` directory. Use the `Dockerfile` provided or the `gunicorn` start command via the `Procfile`. Ensure `ALLOWED_ORIGINS` includes your deployed frontend domain (e.g., `https://your-frontend.vercel.app`). Add Twilio environment variables from `backend/.env.example`.
 
+- **Railway (alternative)**: You can deploy both frontend and backend to Railway. Use the provided Dockerfiles for production builds.
+
+	Frontend on Railway (Docker):
+	- In Railway, create a new project → Deploy → GitHub repo and choose the `frontend` folder.
+	- Use Dockerfile detection (uses `frontend/Dockerfile`).
+	- Set environment variable `VITE_API_URL=https://<your-backend-on-railway>`.
+
+	Backend on Railway (Docker or Python):
+	- Create a new service using the `backend` folder.
+	- If using Docker: set the Dockerfile path to `backend/Dockerfile`.
+	- If using the built-in Python deploy, set the build command to `pip install -r requirements.txt` and start command to `gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT`.
+	- Add environment variables in Railway (Twilio credentials and `ALLOWED_ORIGINS` set to your Railway frontend URL).
+
 Example `VITE_API_URL` for frontend environment variables: `https://your-backend.onrender.com`
 
 After deploying both services, update `ALLOWED_ORIGINS` and `VITE_API_URL` to match the production domains.
