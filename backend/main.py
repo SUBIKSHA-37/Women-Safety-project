@@ -15,20 +15,13 @@ from services.sos import dispatch_sos
 app = FastAPI(title="HerShield", version="1.0.0")
 
 # -------------------- CORS FIX -------------------- #
-# Allow all origins for now (important for Vercel)
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://womensafetyproject.vercel.app"],
+    allow_origins=["*"],  # ✅ allow all (fixes Vercel issue)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # -------------------- MODELS -------------------- #
 class RouteRequest(BaseModel):
@@ -66,36 +59,36 @@ async def safe_route(payload: RouteRequest):
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
 
-            # Step 1: Convert place names to coordinates
+            # Step 1: Geocoding
             source, destination = await asyncio.gather(
                 geocode(payload.source, client),
                 geocode(payload.destination, client)
             )
 
-            # Step 2: Get raw routes
+            # Step 2: Routing
             raw_routes = await get_routes(source, destination, client)
 
-            # Step 3: Collect all route points
+            # Step 3: Collect all points
             all_points = [
                 point for route in raw_routes for point in route["coordinates"]
             ]
 
-            # Step 4: Get nearby safety coverage
+            # Step 4: Safety coverage
             coverage = await nearby_safety_coverage(all_points, client)
 
-            # Step 5: Generate safe route profiles
+            # Step 5: Generate safety profiles
             routes = generate_route_profiles(
                 raw_routes,
                 coverage["hospitals"],
                 coverage["police"]
             )
 
-        # Step 6: Assign duration (safe fallback)
+        # Step 6: Assign duration
         min_duration = min(item["duration_s"] for item in raw_routes)
         for route in routes:
             route["duration_s"] = min_duration
 
-        # Step 7: Pick safest route
+        # Step 7: Pick safest
         best_route = next(
             (route for route in routes if route["id"] == "safest"),
             routes[0]
@@ -120,7 +113,7 @@ async def safe_route(payload: RouteRequest):
     except httpx.HTTPError:
         raise HTTPException(
             status_code=502,
-            detail="Could not reach the mapping service. Please try again shortly."
+            detail="Could not reach the mapping service."
         )
 
     except Exception as error:
