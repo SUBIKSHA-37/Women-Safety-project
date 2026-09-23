@@ -23,7 +23,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",   # frontend local
         "http://127.0.0.1:5173",   # sometimes used
-        "https://womensafetyproject.vercel.app",  # deployed
+        "https://womensaferout.vercel.app",  # deployed
         "https://*.vercel.app",   # preview links (optional)
     ],
     allow_credentials=True,
