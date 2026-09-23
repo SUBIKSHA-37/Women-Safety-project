@@ -14,18 +14,14 @@ from services.sos import dispatch_sos
 # -------------------- APP INIT -------------------- #
 app = FastAPI(title="HerShield", version="1.0.0")
 
-# -------------------- CORS FIX -------------------- #
-
-import os
-
-origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
-
+# -------------------- CORS FIX (FINAL) -------------------- #
+# Allow all origins (safe for now, fixes your issue completely)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],          # ✅ allow all
+    allow_credentials=False,      # ✅ must be False with "*"
+    allow_methods=["*"],          # ✅ allow all methods (POST, GET, OPTIONS)
+    allow_headers=["*"],          # ✅ allow all headers
 )
 
 # -------------------- MODELS -------------------- #
@@ -64,7 +60,7 @@ async def safe_route(payload: RouteRequest):
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
 
-            # Step 1: Geocoding
+            # Step 1: Geocode
             source, destination = await asyncio.gather(
                 geocode(payload.source, client),
                 geocode(payload.destination, client)
@@ -73,7 +69,7 @@ async def safe_route(payload: RouteRequest):
             # Step 2: Routing
             raw_routes = await get_routes(source, destination, client)
 
-            # Step 3: Collect all points
+            # Step 3: Collect points
             all_points = [
                 point for route in raw_routes for point in route["coordinates"]
             ]
@@ -81,7 +77,7 @@ async def safe_route(payload: RouteRequest):
             # Step 4: Safety coverage
             coverage = await nearby_safety_coverage(all_points, client)
 
-            # Step 5: Generate safety profiles
+            # Step 5: Generate profiles
             routes = generate_route_profiles(
                 raw_routes,
                 coverage["hospitals"],
