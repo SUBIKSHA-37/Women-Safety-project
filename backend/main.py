@@ -16,17 +16,12 @@ app = FastAPI(title="HerShield", version="1.0.0")
 
 # -------------------- CORS FIX (FINAL) -------------------- #
 # Allow all origins (safe for now, fixes your issue completely)
-from fastapi.middleware.cors import CORSMiddleware
-import os
-
-origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["https://womensaferout.vercel.app"],          # ✅ allow all
+    allow_credentials=False,      # ✅ must be False with "*"
+    allow_methods=["*"],          # ✅ allow all methods (POST, GET, OPTIONS)
+    allow_headers=["*"],          # ✅ allow all headers
 )
 
 # -------------------- MODELS -------------------- #
