@@ -17,8 +17,8 @@ app = FastAPI(title="HerShield", version="1.0.0")
 # -------------------- CORS FIX -------------------- #
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ✅ allow all (fixes Vercel issue)
-    allow_credentials=True,
+    allow_origins=["*"],       # ✅ allow ALL origins
+    allow_credentials=False,   # ✅ important
     allow_methods=["*"],
     allow_headers=["*"],
 )
