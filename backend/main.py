@@ -15,10 +15,15 @@ from services.sos import dispatch_sos
 app = FastAPI(title="HerShield", version="1.0.0")
 
 # -------------------- CORS FIX -------------------- #
+
+import os
+
+origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],       # ✅ allow ALL origins
-    allow_credentials=False,   # ✅ important
+    allow_origins=origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
