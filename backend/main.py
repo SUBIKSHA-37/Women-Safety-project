@@ -19,7 +19,7 @@ app = FastAPI(title="HerShield", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://womensaferout.vercel.app"],          # ✅ allow all
-    allow_credentials=False,      # ✅ must be False with "*"
+    allow_credentials=True,      # ✅ must be False with "*"
     allow_methods=["*"],          # ✅ allow all methods (POST, GET, OPTIONS)
     allow_headers=["*"],          # ✅ allow all headers
 )
