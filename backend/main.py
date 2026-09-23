@@ -18,7 +18,7 @@ app = FastAPI(title="HerShield", version="1.0.0")
 # Allow all origins for now (important for Vercel)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["womensaferout.vercel.app"],  # change to your Vercel URL later
+    allow_origins=["https://womensafetyproject.vercel.app"],  # change to your Vercel URL later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
