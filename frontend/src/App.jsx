@@ -10,7 +10,7 @@ import Loader from './components/Loader';
 import RouteOptions from './components/RouteOptions';
 
 // ✅ FIXED API URL (important)
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://nila-backend-production-db13.up.railway.app";
 
 // distance calculation
 const distance = (a, b) => {
