@@ -16,13 +16,19 @@ app = FastAPI(title="HerShield", version="1.0.0")
 
 # -------------------- CORS FIX -------------------- #
 # Allow all origins for now (important for Vercel)
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://womensafetyproject.vercel.app"],  # change to your Vercel URL later
+    allow_origins=["https://womensafetyproject.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # -------------------- MODELS -------------------- #
 class RouteRequest(BaseModel):
